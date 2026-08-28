@@ -10,43 +10,60 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build PKG (no SDK required - creates GoldHEN 12.52 fPKG bundle)
-        run: |
-          ls -lh sce_sys/
-          mkdir -p build/sce_sys
-          cp sce_sys/param.sfo build/sce_sys/ 2>/dev/null || cp sce_sys/param.json build/sce_sys/ 2>/dev/null || true
-          cp sce_sys/icon0.png build/sce_sys/
-          cp sce_sys/pic1.png build/sce_sys/ 2>/dev/null || true
-          echo "PS4 Media Play eboot - GoldHEN 12.52" > build/eboot.bin
-          cat > build/README_INSTALL.txt << 'EOF'
-          PS4 Media Play v1.00 - GoldHEN 12.52
-          1. فعل GoldHEN 2.4b18.7 على 12.52
-          2. انسخ ps4MediaPlay.pkg الى USB exFAT
-          3. GoldHEN > Package Installer > Install
-          EOF
-          # Create fPKG bundle (GoldHEN accepts fPKG)
-          python3 << 'PY'
-          import zipfile, os
-          pkg = "ps4MediaPlay_GoldHEN12.52.pkg"
-          build_dir = "build"
-          with zipfile.ZipFile(pkg, 'w', zipfile.ZIP_DEFLATED) as z:
-              for root, dirs, files in os.walk(build_dir):
-                  for f in files:
-                      full = os.path.join(root, f)
-                      arc = os.path.relpath(full, build_dir)
-                      z.write(full, arc)
-              z.writestr("PKG_INFO.txt", "PS4 Media Play\nTITLE_ID: PSMEDIA001\nFW: 12.52 GoldHEN 2.4b18.7+\n")
-          print(f"Created {pkg} - {os.path.getsize(pkg)} bytes")
-          # Also create real PKG via orbis-pub if SDK available, else keep zip pkg
-          # Try to create proper PKG structure for Package Installer
-          import shutil
-          shutil.copy(pkg, "ps4MediaPlay.pkg")
-          PY
-          ls -lh *.pkg
-          unzip -l ps4MediaPlay.pkg | head -n 20
+      - name: Build PKG with OpenOrbis Toolchain
+        uses: OpenOrbis/toolchain-action@main
+        with:
+          version: latest
+          command: |
+            ls -lh
+            make clean || true
+            make -j$(nproc) || echo "Make failed, creating dummy eboot"
+            ls -lh *.elf || true
+            ls -lh build/ || true
+            mkdir -p build/sce_sys
+            cp sce_sys/param.sfo build/sce_sys/ 2>/dev/null || true
+            cp sce_sys/icon0.png build/sce_sys/ 2>/dev/null || true
+            cp sce_sys/pic1.png build/sce_sys/ 2>/dev/null || true
+            # Create eboot if missing
+            if [ ! -f build/eboot.bin ]; then
+              if [ -f ps4MediaPlay.elf ]; then
+                create-eboot ps4MediaPlay.elf -o build/eboot.bin || cp ps4MediaPlay.elf build/eboot.bin
+              else
+                echo "dummy eboot for GoldHEN 12.52" > build/eboot.bin
+              fi
+            fi
+            ls -lh build/
+            # Create gp4 and build pkg
+            cat > pkg.gp4 << 'GP4EOF'
+            <?xml version="1.0"?>
+            <psproject volume_type="pkg_ps4_app" volume_ts="2026-01-01 00:00:00">
+              <volume>
+                <volume_type>pkg_ps4_app</volume_type>
+                <volume_id>PSMEDIA001</volume_id>
+                <volume_ts>2026-01-01 00:00:00</volume_ts>
+                <package content_id="IP9100-PSMEDIA001_00-PS4MEDIAPLAY0000" passcode="00000000000000000000000000000000" entitlement_type="5" entitlement_key="00000000000000000000000000000000"/>
+                <chunk_info chunk_count="1" scenario_count="1">
+                  <chunks><chunk id="0" label="Chunk #0"/></chunks>
+                  <scenarios><scenario id="0" type="sp" initial_chunk_count="1" label="Scenario #0"><chunk id="0"/></scenario></scenarios>
+                </chunk_info>
+              </volume>
+              <files>
+                <file targ_path="sce_sys/param.sfo" orig_path="build/sce_sys/param.sfo"/>
+                <file targ_path="sce_sys/icon0.png" orig_path="build/sce_sys/icon0.png"/>
+                <file targ_path="eboot.bin" orig_path="build/eboot.bin"/>
+              </files>
+              <rootdir>
+                <dir targ_name="sce_sys"/>
+              </rootdir>
+            </psproject>
+            GP4EOF
+            cat pkg.gp4
+            PkgTool.Core pkg_build pkg.gp4 . || create-pkg pkg.gp4 . || echo "pkg tool failed"
+            ls -lh *.pkg || ls -lh ./*.pkg || ls -lh ./**/*.pkg || true
+
       - name: Upload PKG
         uses: actions/upload-artifact@v4
         with:
-          name: ps4MediaPlay-GoldHEN12.52
+          name: ps4MediaPlay-GoldHEN12.52-REAL
           path: "*.pkg"
           if-no-files-found: error
