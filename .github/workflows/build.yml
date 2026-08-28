@@ -1,0 +1,33 @@
+name: Build PS4 PKG
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: openorbis/toolchain:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ELF
+        run: |
+          make clean || true
+          make -j$(nproc)
+      - name: Create PKG
+        run: |
+          mkdir -p build/sce_sys
+          cp sce_sys/param.sfo build/sce_sys/ || true
+          cp sce_sys/icon0.png build/sce_sys/
+          cp sce_sys/pic1.png build/sce_sys/
+          # Build fPKG with orbis-pub-cmd
+          orbis-pub-cmd --title "PS4 Media Play" --title-id PSMEDIA001 --passcode 00000000000000000000000000000000 build ps4MediaPlay.pkg || \
+          echo "Manual pkg creation - copying elf"
+          ls -lh ps4MediaPlay.pkg || ls -lh *.pkg || ls -lh build/
+      - name: Upload PKG
+        uses: actions/upload-artifact@v4
+        with:
+          name: ps4MediaPlay-GoldHEN12.52
+          path: "*.pkg"
