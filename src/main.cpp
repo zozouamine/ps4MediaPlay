@@ -1,5 +1,12 @@
 #define _POSIX_C_SOURCE 200809L
 #include <sys/types.h>
+// Fix for OpenOrbis SDK: u_short/u_int not defined in some toolchain versions
+#ifndef u_short
+typedef unsigned short u_short;
+#endif
+#ifndef u_int
+typedef unsigned int u_int;
+#endif
 #include <stdio.h>
 #include <string>
 
