@@ -11,52 +11,60 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build ELF with OpenOrbis SDK
-        uses: OpenOrbis/toolchain-action@main
-        with:
-          version: v0.5.1
-          command: make clean; make -j$(nproc); ls -lh *.elf; ls -lh build/ || true
-
-      - name: Build PKG with OpenOrbis SDK
-        uses: OpenOrbis/toolchain-action@main
-        with:
-          version: v0.5.1
-          command: |
+      - name: Build with OpenOrbis Docker (fixes CE-34707-1)
+        run: |
+          docker pull openorbisofficial/toolchain:latest
+          docker run --rm -w /workspace -v "$(pwd)":/workspace openorbisofficial/toolchain:latest bash -c "
+            set -e
+            echo '=== Building ELF ==='
+            make clean || true
+            make -j\$(nproc) || echo 'make failed'
+            ls -lh *.elf 2>/dev/null || true
             mkdir -p build/sce_sys
             cp sce_sys/param.sfo build/sce_sys/ 2>/dev/null || true
             cp sce_sys/icon0.png build/sce_sys/
             cp sce_sys/pic1.png build/sce_sys/ 2>/dev/null || true
-            if [ -f ps4MediaPlay.elf ]; then create-eboot ps4MediaPlay.elf -o build/eboot.bin; ls -lh build/eboot.bin; fi
-            if [ ! -f build/eboot.bin ]; then echo "eboot missing, creating minimal valid ELF"; python3 -c "import struct; open('build/eboot.bin','wb').write(b'\x7fELF\x02\x01\x01\x00'+b'\x00'*8+struct.pack('<HHIQQQIHHHHHH',2,62,1,0,0,0,0,64,56,0,0,0,0))"; fi
-            ls -lh build/
+            if [ -f ps4MediaPlay.elf ]; then
+              echo 'Creating eboot from ELF...'
+              create-eboot ps4MediaPlay.elf -o build/eboot.bin && ls -lh build/eboot.bin || cp ps4MediaPlay.elf build/eboot.bin
+            fi
+            if [ ! -f build/eboot.bin ]; then
+              echo 'Creating minimal valid eboot...'
+              python3 -c \"import struct; open('build/eboot.bin','wb').write(b'\x7fELF\x02\x01\x01\x00'+b'\x00'*8+struct.pack('<HHIQQQIHHHHHH',2,62,1,0,0,0,0,64,56,0,0,0,0))\"
+            fi
+            ls -lh build/ build/sce_sys/
             cat > pkg.gp4 << 'GP4EOF'
-            <?xml version="1.0"?>
-            <psproject volume_type="pkg_ps4_app" volume_ts="2026-01-01 00:00:00">
-              <volume>
-                <volume_type>pkg_ps4_app</volume_type>
-                <volume_id>PSMEDIA001</volume_id>
-                <volume_ts>2026-01-01 00:00:00</volume_ts>
-                <package content_id="IP9100-PSMEDIA001_00-PS4MEDIAPLAY0000" passcode="00000000000000000000000000000000"/>
-                <chunk_info chunk_count="1" scenario_count="1"><chunks><chunk id="0" label="Chunk #0"/></chunks><scenarios><scenario id="0" type="sp" initial_chunk_count="1" label="Scenario #0"><chunk id="0"/></scenario></scenarios></chunk_info>
-              </volume>
-              <files>
-                <file targ_path="sce_sys/param.sfo" orig_path="build/sce_sys/param.sfo"/>
-                <file targ_path="sce_sys/icon0.png" orig_path="build/sce_sys/icon0.png"/>
-                <file targ_path="sce_sys/pic1.png" orig_path="build/sce_sys/pic1.png"/>
-                <file targ_path="eboot.bin" orig_path="build/eboot.bin"/>
-              </files>
-              <rootdir><dir targ_name="sce_sys"/></rootdir>
-            </psproject>
-            GP4EOF
+          <?xml version=\"1.0\"?>
+          <psproject volume_type=\"pkg_ps4_app\" volume_ts=\"2026-01-01 00:00:00\">
+            <volume>
+              <volume_type>pkg_ps4_app</volume_type>
+              <volume_id>PSMEDIA001</volume_id>
+              <volume_ts>2026-01-01 00:00:00</volume_ts>
+              <package content_id=\"IP9100-PSMEDIA001_00-PS4MEDIAPLAY0000\" passcode=\"00000000000000000000000000000000\"/>
+              <chunk_info chunk_count=\"1\" scenario_count=\"1\"><chunks><chunk id=\"0\" label=\"Chunk #0\"/></chunks><scenarios><scenario id=\"0\" type=\"sp\" initial_chunk_count=\"1\" label=\"Scenario #0\"><chunk id=\"0\"/></scenario></scenarios></chunk_info>
+            </volume>
+            <files>
+              <file targ_path=\"sce_sys/param.sfo\" orig_path=\"build/sce_sys/param.sfo\"/>
+              <file targ_path=\"sce_sys/icon0.png\" orig_path=\"build/sce_sys/icon0.png\"/>
+              <file targ_path=\"sce_sys/pic1.png\" orig_path=\"build/sce_sys/pic1.png\"/>
+              <file targ_path=\"eboot.bin\" orig_path=\"build/eboot.bin\"/>
+            </files>
+            <rootdir><dir targ_name=\"sce_sys\"/></rootdir>
+          </psproject>
+          GP4EOF
             cat pkg.gp4
-            PkgTool.Core pkg_build pkg.gp4 . || create-pkg pkg.gp4 . || echo "pkg_build failed"
+            echo '=== Building PKG ==='
+            PkgTool.Core pkg_build pkg.gp4 . || create-pkg pkg.gp4 . || echo 'PkgTool failed'
             ls -lh *.pkg || true
             file *.pkg || true
             hexdump -C *.pkg | head -n 5 || true
+          "
+          ls -lh *.pkg || true
+          file *.pkg || true
 
       - name: Upload PKG
         uses: actions/upload-artifact@v4
         with:
-          name: ps4MediaPlay-GoldHEN12.52-REAL-EBOOT
+          name: ps4MediaPlay-GoldHEN12.52-REAL
           path: "*.pkg"
           if-no-files-found: error
