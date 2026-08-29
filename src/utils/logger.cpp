@@ -4,6 +4,14 @@
 #include <ctime>
 
 #ifndef PC_SIMULATOR
+#define _POSIX_C_SOURCE 200809L
+#include <sys/types.h>
+#ifndef u_short
+typedef unsigned short u_short;
+#endif
+#ifndef u_int
+typedef unsigned int u_int;
+#endif
 #include <orbis/libkernel.h>
 #endif
 

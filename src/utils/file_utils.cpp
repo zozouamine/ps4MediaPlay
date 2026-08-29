@@ -28,11 +28,11 @@ std::vector<FileEntry> FileUtils::listDirectory(const std::string& path) {
             fe.size = st.st_size;
             result.push_back(fe);
         } else {
-            // Fallback if stat fails
+            // Fallback if stat fails - DT_DIR may not be available on PS4 SDK
             FileEntry fe;
             fe.name = name;
             fe.path = fullPath;
-            fe.isDirectory = (entry->d_type == DT_DIR);
+            fe.isDirectory = false;
             fe.size = 0;
             result.push_back(fe);
         }
