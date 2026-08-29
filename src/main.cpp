@@ -9,6 +9,18 @@
 #include <orbis/Pad.h>
 #include <orbis/UserService.h>
 #include <orbis/SystemService.h>
+// Fallback defines if SDK version differs
+#ifndef SCE_PAD_BUTTON_CROSS
+#define SCE_PAD_BUTTON_CROSS 0x0001
+#define SCE_PAD_BUTTON_CIRCLE 0x0002
+#define SCE_PAD_BUTTON_TRIANGLE 0x0004
+#define SCE_PAD_BUTTON_SQUARE 0x0008
+#define SCE_PAD_BUTTON_L1 0x0010
+#define SCE_PAD_BUTTON_R1 0x0020
+#define SCE_PAD_BUTTON_L2 0x0040
+#define SCE_PAD_BUTTON_R2 0x0080
+#define SCE_PAD_BUTTON_OPTIONS 0x0100
+#endif
 #endif
 
 #include "ui/ui_manager.h"
@@ -99,10 +111,8 @@ extern "C" int _main(struct SceKernelArg *args) {
             if (padData.leftStick.y > 220) ui.onNavigateDown();
         }
 
-        // Handle PS button exit
-        if (padData.buttons & SCE_PAD_BUTTON_PS) {
-            running = false;
-        }
+        // Handle PS button exit - use OPTIONS+CIRCLE as exit (PS button is system reserved)
+        // if (padData.buttons & 0x1000) running = false; // PS button if available
 
         ui.update();
         ui.render();
