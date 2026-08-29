@@ -1,8 +1,8 @@
 # PS4 Media Play - Fixed for OpenOrbis Toolchain (works on Codespace/Docker)
 TITLE       := PS4 Media Play
 VERSION     := 1.00
-TITLE_ID    := PSMEDIA001
-CONTENT_ID  := IP9100-PSMEDIA001_00-PS4MEDIAPLAY0000
+TITLE_ID    := PSMEDIA01
+CONTENT_ID  := IP9100-PSMEDIA01_00-PS4MEDIAPLAY0000
 LIBS        := -lc -lkernel -lc++ -lSceVideoOut -lSceAudioOut -lScePad -lSceUserService -lSceSystemService
 
 TOOLCHAIN   := $(OO_PS4_TOOLCHAIN)
@@ -51,7 +51,7 @@ $(CONTENT_ID).pkg: pkg.gp4
 	$(TOOLCHAIN)/bin/$(CDIR)/PkgTool.Core pkg_build $< . 2>/dev/null || PkgTool.Core pkg_build $< . 2>/dev/null || create-pkg pkg.gp4 . || echo "pkg_build done"; ls -lh *.pkg || true
 
 pkg.gp4: eboot.bin sce_sys/param.sfo sce_sys/icon0.png
-	$(TOOLCHAIN)/bin/$(CDIR)/create-gp4 -out $@ --content-id=$(CONTENT_ID) --files "eboot.bin sce_sys/param.sfo sce_sys/icon0.png sce_sys/pic1.png" 2>/dev/null || echo '<?xml version="1.0"?><psproject volume_type="pkg_ps4_app" volume_ts="2023-01-01 00:00:00"><volume><volume_type>pkg_ps4_app</volume_type><volume_id>PSMEDIA001</volume_id><volume_ts>2023-01-01 00:00:00</volume_ts><package content_id="IP9100-PSMEDIA001_00-PS4MEDIAPLAY0000" passcode="00000000000000000000000000000000"/><chunk_info chunk_count="1" scenario_count="1"><chunks><chunk id="0" label="Chunk #0"/></chunks><scenarios><scenario id="0" type="sp" initial_chunk_count="1" label="Scenario #0"><chunk id="0"/></scenario></scenarios></chunk_info></volume><files><file targ_path="sce_sys/param.sfo" orig_path="sce_sys/param.sfo"/><file targ_path="sce_sys/icon0.png" orig_path="sce_sys/icon0.png"/><file targ_path="sce_sys/pic1.png" orig_path="sce_sys/pic1.png"/><file targ_path="eboot.bin" orig_path="eboot.bin"/></files><rootdir><dir targ_name="sce_sys"/></rootdir></psproject>' > $@
+	$(TOOLCHAIN)/bin/$(CDIR)/create-gp4 -out $@ --content-id=$(CONTENT_ID) --files "eboot.bin sce_sys/param.sfo sce_sys/icon0.png sce_sys/pic1.png" 2>/dev/null || echo '<?xml version="1.0"?><psproject volume_type="pkg_ps4_app" volume_ts="2023-01-01 00:00:00"><volume><volume_type>pkg_ps4_app</volume_type><volume_id>PSMEDIA01</volume_id><volume_ts>2023-01-01 00:00:00</volume_ts><package content_id="IP9100-PSMEDIA01_00-PS4MEDIAPLAY0000" passcode="00000000000000000000000000000000"/><chunk_info chunk_count="1" scenario_count="1"><chunks><chunk id="0" label="Chunk #0"/></chunks><scenarios><scenario id="0" type="sp" initial_chunk_count="1" label="Scenario #0"><chunk id="0"/></scenario></scenarios></chunk_info></volume><files><file targ_path="sce_sys/param.sfo" orig_path="sce_sys/param.sfo"/><file targ_path="sce_sys/icon0.png" orig_path="sce_sys/icon0.png"/><file targ_path="sce_sys/pic1.png" orig_path="sce_sys/pic1.png"/><file targ_path="eboot.bin" orig_path="eboot.bin"/></files><rootdir><dir targ_name="sce_sys"/></rootdir></psproject>' > $@
 
 sce_sys/param.sfo: Makefile
 	mkdir -p sce_sys
