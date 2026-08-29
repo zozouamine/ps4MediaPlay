@@ -7,7 +7,10 @@ LIBS        := -lc -lkernel -lc++ -lSceVideoOut -lSceAudioOut -lScePad -lSceUser
 
 TOOLCHAIN   := $(OO_PS4_TOOLCHAIN)
 ifeq ($(TOOLCHAIN),)
-  TOOLCHAIN := /opt/pacbrew/ps4/openorbis
+  TOOLCHAIN := /usr/lib/OpenOrbisSDK
+  ifeq ($(wildcard $(TOOLCHAIN)),)
+    TOOLCHAIN := /opt/pacbrew/ps4/openorbis
+  endif
   ifeq ($(wildcard $(TOOLCHAIN)),)
     TOOLCHAIN := /usr
   endif
