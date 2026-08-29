@@ -1,26 +1,16 @@
+#define _POSIX_C_SOURCE 200809L
+#include <sys/types.h>
 #include <stdio.h>
 #include <string>
 
 #ifndef PC_SIMULATOR
-// PS4 SDK Headers (OpenOrbis)
+// PS4 SDK Headers (OpenOrbis) - must be before C++ headers that need nanosleep
 #include <orbis/libkernel.h>
 #include <orbis/VideoOut.h>
 #include <orbis/AudioOut.h>
 #include <orbis/Pad.h>
 #include <orbis/UserService.h>
 #include <orbis/SystemService.h>
-// Fallback defines if SDK version differs
-#ifndef SCE_PAD_BUTTON_CROSS
-#define SCE_PAD_BUTTON_CROSS 0x0001
-#define SCE_PAD_BUTTON_CIRCLE 0x0002
-#define SCE_PAD_BUTTON_TRIANGLE 0x0004
-#define SCE_PAD_BUTTON_SQUARE 0x0008
-#define SCE_PAD_BUTTON_L1 0x0010
-#define SCE_PAD_BUTTON_R1 0x0020
-#define SCE_PAD_BUTTON_L2 0x0040
-#define SCE_PAD_BUTTON_R2 0x0080
-#define SCE_PAD_BUTTON_OPTIONS 0x0100
-#endif
 #endif
 
 #include "ui/ui_manager.h"
@@ -50,8 +40,12 @@ extern "C" int _main(struct SceKernelArg *args) {
     sceKernelLoadStartModule("libScePad.sprx", 0, 0, 0, 0, 0);
     sceKernelLoadStartModule("libSceUserService.sprx", 0, 0, 0, 0, 0);
 
-    // Init Pad for DualShock 4
-    SceUserServiceUserId userId;
+    // Init Pad for DualShock 4 (using Orbis API as per SDK sample)
+    scePadInit();
+    OrbisUserServiceInitializeParams param;
+    param.priority = ORBIS_KERNEL_PRIO_FIFO_LOWEST;
+    sceUserServiceInitialize(&param);
+    OrbisUserServiceUserId userId;
     sceUserServiceGetInitialUser(&userId);
     int padHandle = scePadOpen(userId, 0, 0, nullptr);
     if (padHandle < 0) {
@@ -71,37 +65,37 @@ extern "C" int _main(struct SceKernelArg *args) {
     }
 
     // Main Loop
-    ScePadData padData;
+    OrbisPadData padData;
     bool running = true;
     while (running) {
         // Poll Pad Input
         if (scePadReadState(padHandle, &padData) == 0) {
-            // Map buttons to UI actions
-            if (padData.buttons & SCE_PAD_BUTTON_CROSS) {
+            // Map buttons to UI actions (ORBIS_ prefix as per SDK)
+            if (padData.buttons & ORBIS_PAD_BUTTON_CROSS) {
                 ui.onButtonCross();
             }
-            if (padData.buttons & SCE_PAD_BUTTON_CIRCLE) {
+            if (padData.buttons & ORBIS_PAD_BUTTON_CIRCLE) {
                 ui.onButtonCircle();
             }
-            if (padData.buttons & SCE_PAD_BUTTON_OPTIONS) {
+            if (padData.buttons & ORBIS_PAD_BUTTON_OPTIONS) {
                 ui.onButtonOptions();
             }
-            if (padData.buttons & SCE_PAD_BUTTON_TRIANGLE) {
+            if (padData.buttons & ORBIS_PAD_BUTTON_TRIANGLE) {
                 ui.onButtonTriangle();
             }
-            if (padData.buttons & SCE_PAD_BUTTON_SQUARE) {
+            if (padData.buttons & ORBIS_PAD_BUTTON_SQUARE) {
                 ui.onButtonSquare();
             }
-            if (padData.buttons & SCE_PAD_BUTTON_L1) {
+            if (padData.buttons & ORBIS_PAD_BUTTON_L1) {
                 player.previous();
             }
-            if (padData.buttons & SCE_PAD_BUTTON_R1) {
+            if (padData.buttons & ORBIS_PAD_BUTTON_R1) {
                 player.next();
             }
-            if (padData.buttons & SCE_PAD_BUTTON_L2) {
+            if (padData.buttons & ORBIS_PAD_BUTTON_L2) {
                 player.seekRelative(-10); // -10 sec
             }
-            if (padData.buttons & SCE_PAD_BUTTON_R2) {
+            if (padData.buttons & ORBIS_PAD_BUTTON_R2) {
                 player.seekRelative(10); // +10 sec
             }
             // Stick for navigation
