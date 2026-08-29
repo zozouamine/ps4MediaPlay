@@ -25,7 +25,7 @@ jobs:
           eboot_path = "build/eboot.bin"
           # ELF header + minimal program header
           elf_header = struct.pack('<4sBBBBB7sHHIQQQIHHHHHH',
-              b'\x7fELF', 2, 1, 1, 0, b'\x00'*7,  # e_ident
+              b'\x7fELF', 2, 1, 1, 0, 0, b'\x00'*7,  # e_ident (5 B + 7s)
               2, 62, 1, 0, 64, 0, 0, 64, 56, 1, 0, 0, 0)  # e_type, e_machine, e_version, e_entry, e_phoff, e_shoff, e_flags, e_ehsize, e_phentsize, e_phnum, e_shentsize, e_shnum, e_shstrndx
           # Program header (PT_LOAD)
           phdr = struct.pack('<IIQQQQQQ',
