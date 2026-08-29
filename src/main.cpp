@@ -35,8 +35,8 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 #else
-// PS4 Entry Point
-extern "C" int _main(struct SceKernelArg *args) {
+// PS4 Entry Point - SDK expects int main(void) as per OpenOrbis samples
+int main(void) {
     Logger::init();
     Logger::info("PS4 Media Play v1.00 Started");
     Logger::info("Firmware: Jailbroken - GoldHEN");
